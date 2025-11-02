@@ -1,0 +1,13 @@
+# ---- Go build ----
+*.exe
+*.out
+
+# ---- Logs / Temp ----
+*.log
+*.tmp
+*.cache
+*.bak
+
+# ---- Dependency tools ----
+.env
+.env.*
