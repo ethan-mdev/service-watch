@@ -33,20 +33,25 @@ func (w *winSvc) List(ctx context.Context) ([]core.Service, error) {
 	for _, name := range names {
 		s, err := m.OpenService(name)
 		if err != nil {
-			// Skip services we can't open (permissions, etc.)
 			continue
 		}
 		config, err := s.Config()
+		if err != nil {
+			s.Close()
+			continue
+		}
+		status, err := s.Query()
 		s.Close()
 		if err != nil {
-			// Skip services we can't query
 			continue
 		}
 		out = append(out, core.Service{
 			Name:        name,
 			DisplayName: config.DisplayName,
+			State:       stateToString(status.State),
 		})
 	}
+
 	return out, nil
 }
 
@@ -68,9 +73,15 @@ func (w *winSvc) Get(ctx context.Context, name string) (core.Service, error) {
 		return core.Service{}, err
 	}
 
+	status, err := s.Query()
+	if err != nil {
+		return core.Service{}, err
+	}
+
 	return core.Service{
 		Name:        name,
 		DisplayName: config.DisplayName,
+		State:       stateToString(status.State),
 	}, nil
 }
 
@@ -140,5 +151,26 @@ func waitState(ctx context.Context, s *mgr.Service, want svc.State) error {
 				return nil
 			}
 		}
+	}
+}
+
+func stateToString(state svc.State) string {
+	switch state {
+	case svc.Stopped:
+		return "stopped"
+	case svc.StartPending:
+		return "start_pending"
+	case svc.StopPending:
+		return "stop_pending"
+	case svc.Running:
+		return "running"
+	case svc.ContinuePending:
+		return "continue_pending"
+	case svc.PausePending:
+		return "pause_pending"
+	case svc.Paused:
+		return "paused"
+	default:
+		return "unknown"
 	}
 }
