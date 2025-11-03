@@ -12,14 +12,15 @@ type ServiceHTTP struct{ M core.ServiceManager }
 
 func NewServiceHTTP(m core.ServiceManager) *ServiceHTTP { return &ServiceHTTP{M: m} }
 
+// Routes sets up the HTTP routes for service management.
 func (h *ServiceHTTP) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
 	r.Route("/{name}", func(r chi.Router) {
 		r.Get("/", h.get)
-		r.Get("/start", h.start)     // Changed to GET for easy browser testing
-		r.Get("/stop", h.stop)       // Changed to GET for easy browser testing
-		r.Get("/restart", h.restart) // Changed to GET for easy browser testing
+		r.Post("/start", h.start)
+		r.Post("/stop", h.stop)
+		r.Post("/restart", h.restart)
 	})
 	return r
 }
@@ -51,6 +52,7 @@ func (h *ServiceHTTP) start(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondWithJSON(w, 200, map[string]any{"accepted": true})
 }
+
 func (h *ServiceHTTP) stop(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if err := h.M.Stop(r.Context(), name); err != nil {
@@ -59,6 +61,7 @@ func (h *ServiceHTTP) stop(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondWithJSON(w, 200, map[string]any{"accepted": true})
 }
+
 func (h *ServiceHTTP) restart(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if err := h.M.Restart(r.Context(), name); err != nil {

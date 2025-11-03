@@ -11,8 +11,10 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 
 	"github.com/ethan-mdev/service-watch/internal/core"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
+// Windows specific implementation of ServiceManager
 type winSvc struct{}
 
 func newServiceManager() core.ServiceManager { return &winSvc{} }
@@ -78,11 +80,37 @@ func (w *winSvc) Get(ctx context.Context, name string) (core.Service, error) {
 		return core.Service{}, err
 	}
 
-	return core.Service{
+	svcData := core.Service{
 		Name:        name,
 		DisplayName: config.DisplayName,
 		State:       stateToString(status.State),
-	}, nil
+		StartType:   startTypeToString(config.StartType),
+		CanStop:     status.Accepts&svc.AcceptStop != 0,
+		PID:         int(status.ProcessId),
+	}
+
+	// Get resource usage if service is running
+	if status.State == svc.Running && status.ProcessId != 0 {
+		if proc, err := process.NewProcess(int32(status.ProcessId)); err == nil {
+			// CPU percentage
+			if cpuPercent, err := proc.CPUPercent(); err == nil {
+				svcData.CPUPercent = cpuPercent
+			}
+
+			// Memory usage
+			if memInfo, err := proc.MemoryInfo(); err == nil {
+				svcData.MemoryMB = float64(memInfo.RSS) / 1024 / 1024 // Convert bytes to MB
+			}
+
+			// Uptime (process create time)
+			if createTime, err := proc.CreateTime(); err == nil {
+				uptimeMs := time.Now().UnixMilli() - createTime
+				svcData.UptimeSeconds = uptimeMs / 1000
+			}
+		}
+	}
+
+	return svcData, nil
 }
 
 func (w *winSvc) Start(ctx context.Context, name string) error {
@@ -170,6 +198,19 @@ func stateToString(state svc.State) string {
 		return "pause_pending"
 	case svc.Paused:
 		return "paused"
+	default:
+		return "unknown"
+	}
+}
+
+func startTypeToString(startType uint32) string {
+	switch startType {
+	case mgr.StartAutomatic:
+		return "auto"
+	case mgr.StartManual:
+		return "manual"
+	case mgr.StartDisabled:
+		return "disabled"
 	default:
 		return "unknown"
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/ethan-mdev/service-watch/internal/core"
 )
 
+// Linux implementation of ServiceManager
 type stubSvc struct{}
 
 func newServiceManager() core.ServiceManager { return &stubSvc{} }
