@@ -1,38 +1,35 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/ethan-mdev/service-watch/internal/handlers"
-	"github.com/ethan-mdev/service-watch/internal/system"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/ethan-mdev/service-watch/internal/handlers"
+	"github.com/ethan-mdev/service-watch/internal/platform"
 )
 
 func main() {
-	sys, err := system.InitSystem()
-	if err != nil {
-		log.Fatalf("init system: %v", err)
-	}
-
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Logger)
 
-	status := handlers.NewStatusHandler(sys)
-	svcs := handlers.NewServiceHandler(sys)
-
-	r.Route("/v1", func(r chi.Router) {
-		r.Get("/status", status.Health)
-		r.Get("/services", svcs.ListServices)
+	// v1 routes
+	r.Route("/v1", func(v1 chi.Router) {
+		v1.Get("/status", handlers.Status())
+		svcHTTP := handlers.NewServiceHTTP(platform.MakeServiceManager())
+		v1.Mount("/services", svcHTTP.Routes())
 	})
 
-	port := ":8080"
-	fmt.Printf("Server starting on %s (OS=%s, Platform=%s)\n",
-		port, sys.HostInfo.OS, sys.HostInfo.Platform)
-	log.Fatal(http.ListenAndServe(port, r))
+	srv := &http.Server{
+		Addr:              "127.0.0.1:8080",
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	log.Printf("service-watch listening on %s", srv.Addr)
+	log.Fatal(srv.ListenAndServe())
 }
