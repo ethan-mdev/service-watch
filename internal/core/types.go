@@ -18,6 +18,7 @@ type WatchlistItem struct {
 	ServiceName  string   `json:"serviceName"`           // Name of the service being watched
 	AutoRestart  bool     `json:"autoRestart"`           // Should we auto-restart if it crashes?
 	RestartCount int      `json:"restartCount"`          // How many times have we restarted it?
+	FailCount    int      `json:"failCount,omitempty"`   // Consecutive failure count
 	LastRestart  string   `json:"lastRestart,omitempty"` // ISO timestamp of last restart
 	Service      *Service `json:"service,omitempty"`     // Current service state when fetched
 }

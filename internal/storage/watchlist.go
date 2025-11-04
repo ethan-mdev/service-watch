@@ -81,6 +81,7 @@ func (j *jsonWatchlist) Add(ctx context.Context, serviceName string, autoRestart
 		ServiceName:  serviceName,
 		AutoRestart:  autoRestart,
 		RestartCount: 0,
+		FailCount:    0,
 	}
 	return j.save()
 }
@@ -107,7 +108,9 @@ func (j *jsonWatchlist) Update(ctx context.Context, serviceName string, autoRest
 	if !exists {
 		return fmt.Errorf("service not in watchlist: %s", serviceName)
 	}
-
+	if autoRestart {
+		item.FailCount = 0
+	}
 	item.AutoRestart = autoRestart
 	return j.save()
 }
@@ -141,6 +144,7 @@ func (j *jsonWatchlist) save() error {
 			AutoRestart:  item.AutoRestart,
 			RestartCount: item.RestartCount,
 			LastRestart:  item.LastRestart,
+			FailCount:    item.FailCount,
 		})
 	}
 

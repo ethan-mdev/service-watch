@@ -46,10 +46,17 @@ func checkServices(ctx context.Context, watchlistMgr core.WatchlistManager, svcM
 		}
 
 		if item.Service.State != "running" {
+			if item.FailCount >= 3 {
+				log.Printf("Watcher: service %s has failed %d times, skipping restart", item.ServiceName, item.FailCount)
+				watchlistMgr.Update(ctx, item.ServiceName, false)
+				continue
+			}
+
 			log.Printf("Watcher: service %s is %s, attempting restart...",
 				item.ServiceName, item.Service.State)
 
 			if err := svcMgr.Start(ctx, item.ServiceName); err != nil {
+				item.FailCount++
 				log.Printf("Watcher: failed to restart %s: %v", item.ServiceName, err)
 			} else {
 				log.Printf("Watcher: successfully restarted %s", item.ServiceName)
