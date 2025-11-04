@@ -11,3 +11,9 @@
 # ---- Dependency tools ----
 .env
 .env.*
+
+watchlist.json
+
+# ---- IDEs / Editors ----
+.vscode/
+node_modules/
