@@ -1,9 +1,9 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
 
-  let services = [];
-  let events = [];
-  let connected = false;
+  let services = $state([]);
+  let events = $state([]);
+  let connected = $state(false);
   let eventSource = null;
 
   onMount(async () => {
@@ -25,31 +25,32 @@
       addEvent('Connected to SSE');
     });
 
-    eventSource.addEventListener('restart_attempt', (e) => {
+    eventSource.addEventListener('service_restarting', (e) => {
       const data = JSON.parse(e.data);
-      addEvent(`Attempting to restart ${data.serviceName}`);
+      addEvent(`Attempting to restart ${data.service_name}`);
     });
 
-    eventSource.addEventListener('restart_success', (e) => {
+    eventSource.addEventListener('service_restart_success', (e) => {
       const data = JSON.parse(e.data);
-      addEvent(`✓ ${data.serviceName} restarted (count: ${data.restartCount})`);
+      addEvent(`✓ ${data.service_name} restarted (count: ${data.restart_count})`);
       loadWatchlist();
     });
 
-    eventSource.addEventListener('restart_failed', (e) => {
+    eventSource.addEventListener('service_restart_failed', (e) => {
       const data = JSON.parse(e.data);
-      addEvent(`✗ Failed to restart ${data.serviceName}: ${data.error}`);
+      addEvent(`✗ Failed to restart ${data.service_name}: ${data.error}`);
     });
 
     eventSource.addEventListener('service_failed', (e) => {
       const data = JSON.parse(e.data);
-      addEvent(`✗ ${data.serviceName} exceeded max restart attempts`);
+      addEvent(`✗ ${data.service_name} exceeded max restart attempts`);
     });
   });
 
   onDestroy(() => {
     if (eventSource) {
       eventSource.close();
+      connected = false;
     }
   });
 
