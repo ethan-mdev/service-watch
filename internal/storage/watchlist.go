@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/ethan-mdev/service-watch/internal/core"
 )
@@ -149,4 +150,19 @@ func (j *jsonWatchlist) save() error {
 	}
 
 	return os.WriteFile(j.filepath, data, 0644)
+}
+
+// UpdateRestartInfo implements core.WatchlistManager.
+func (j *jsonWatchlist) IncrementRestartCount(ctx context.Context, serviceName string) error {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
+	item, exists := j.items[serviceName]
+	if !exists {
+		return fmt.Errorf("service not in watchlist: %s", serviceName)
+	}
+
+	item.RestartCount++
+	item.LastRestart = time.Now().Format(time.RFC3339)
+	return j.save()
 }

@@ -28,4 +28,6 @@ type WatchlistManager interface {
 	Remove(ctx context.Context, name string) error
 	// Updates the auto-restart setting for a watchlist item.
 	Update(ctx context.Context, name string, autoRestart bool) error
+	// Increments the restart count and last restart time for a watchlist item.
+	IncrementRestartCount(ctx context.Context, name string) error
 }

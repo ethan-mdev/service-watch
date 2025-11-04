@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/ethan-mdev/service-watch/internal/handlers"
+	"github.com/ethan-mdev/service-watch/internal/monitor"
 	"github.com/ethan-mdev/service-watch/internal/platform"
 	"github.com/ethan-mdev/service-watch/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -17,6 +19,9 @@ func main() {
 
 	// Initialize watchlist manager
 	watchlistMgr := storage.NewJSONWatchlist("watchlist.json", svcMgr)
+
+	// Initialize service watcher
+	go monitor.Start(context.Background(), watchlistMgr, svcMgr)
 
 	// Create HTTP handlers
 	svcHTTP := handlers.NewServiceHTTP(svcMgr)
