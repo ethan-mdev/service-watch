@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ethan-mdev/service-watch/internal/handlers"
+	"github.com/ethan-mdev/service-watch/internal/logger"
 	"github.com/ethan-mdev/service-watch/internal/monitor"
 	"github.com/ethan-mdev/service-watch/internal/platform"
 	"github.com/ethan-mdev/service-watch/internal/sse"
@@ -15,22 +16,35 @@ import (
 )
 
 func main() {
+	// Initialize SSE broadcaster first
+	broadcaster := sse.NewBroadcaster()
+
+	// Initialize logger with broadcaster
+	appLogger, err := logger.Start("logs/events.jsonl", broadcaster)
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer appLogger.Close()
+
+	// Log startup
+	appLogger.Info("app_started", map[string]interface{}{
+		"port": 8080,
+	})
+
 	// Initialize service manager
 	svcMgr := platform.MakeServiceManager()
 
 	// Initialize watchlist manager
 	watchlistMgr := storage.NewJSONWatchlist("watchlist.json", svcMgr)
 
-	// Initialize SSE broadcaster
-	broadcaster := sse.NewBroadcaster()
-
-	// Initialize service watcher
-	go monitor.Start(context.Background(), watchlistMgr, svcMgr, broadcaster)
+	// Initialize service watcher with logger
+	go monitor.Start(context.Background(), watchlistMgr, svcMgr, appLogger)
 
 	// Create HTTP handlers
 	svcHTTP := handlers.NewServiceHTTP(svcMgr)
 	watchlistHTTP := handlers.NewWatchlistHTTP(watchlistMgr)
 	eventsHTTP := handlers.NewEventsHTTP(broadcaster)
+	metricsHTTP := handlers.NewMetricsHTTP("logs/events.jsonl")
 
 	// Setup router
 	r := chi.NewRouter()
@@ -40,7 +54,13 @@ func main() {
 	// Mount routes
 	r.Mount("/v1/services", svcHTTP.Routes())
 	r.Mount("/v1/watchlist", watchlistHTTP.Routes())
+	r.Mount("/v1/metrics", metricsHTTP.Routes())
 	r.Get("/v1/events", eventsHTTP.Stream)
+
+	// Serve API docs at /docs
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/index.html")
+	})
 
 	// Start server
 	addr := "127.0.0.1:8080"

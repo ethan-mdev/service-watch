@@ -2,18 +2,7 @@
 *.exe
 *.out
 
-# ---- Logs / Temp ----
-*.log
-*.tmp
-*.cache
-*.bak
-
-# ---- Dependency tools ----
-.env
-.env.*
-
-watchlist.json
-
-# ---- IDEs / Editors ----
 .vscode/
 node_modules/
+logs/
+watchlist.json

@@ -2,103 +2,105 @@ package monitor
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/ethan-mdev/service-watch/internal/core"
-	"github.com/ethan-mdev/service-watch/internal/sse"
+	"github.com/ethan-mdev/service-watch/internal/logger"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 // Start begins monitoring watchlist items and auto-restarting services.
-func Start(ctx context.Context, watchlistMgr core.WatchlistManager, svcMgr core.ServiceManager, broadcaster *sse.Broadcaster) {
-	log.Println("Starting service monitor...")
+func Start(ctx context.Context, watchlistMgr core.WatchlistManager, svcMgr core.ServiceManager, log *logger.Logger) {
+	log.Info("watcher_started", map[string]interface{}{
+		"interval": "10s",
+	})
 
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	// Check immediately on startup
-	checkServices(ctx, watchlistMgr, svcMgr, broadcaster)
+	checkServices(ctx, watchlistMgr, svcMgr, log)
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Service watcher stopped")
+			log.Info("watcher_stopped", nil)
 			return
 		case <-ticker.C:
-			checkServices(ctx, watchlistMgr, svcMgr, broadcaster)
+			checkServices(ctx, watchlistMgr, svcMgr, log)
 		}
 	}
 }
 
-func checkServices(ctx context.Context, watchlistMgr core.WatchlistManager, svcMgr core.ServiceManager, broadcaster *sse.Broadcaster) {
+func checkServices(ctx context.Context, watchlistMgr core.WatchlistManager, svcMgr core.ServiceManager, log *logger.Logger) {
 	items, err := watchlistMgr.List(ctx)
 	if err != nil {
-		log.Printf("Watcher: failed to list watchlist: %v", err)
+		log.Error("watcher_list_failed", map[string]interface{}{
+			"error": err.Error(),
+		})
 		return
 	}
 
+	checkHostResources(log)
+
 	for _, item := range items {
-		// Only restart if:
-		// 1. AutoRestart is enabled
-		// 2. Service info was retrieved successfully
-		// 3. Service is not running
+
+		if item.Service != nil {
+			log.Info("service_status", map[string]interface{}{
+				"serviceName": item.ServiceName,
+				"state":       item.Service.State,
+				"cpuPercent":  item.Service.CPUPercent,
+				"memoryMB":    item.Service.MemoryMB,
+				"uptimeSec":   item.Service.UptimeSeconds,
+				"pid":         item.Service.PID,
+			})
+		}
+
 		if !item.AutoRestart || item.Service == nil {
 			continue
 		}
 
 		if item.Service.State != "running" {
 			if item.FailCount >= 3 {
-				log.Printf("Watcher: service %s has failed %d times, skipping restart", item.ServiceName, item.FailCount)
-
-				broadcaster.Broadcast(sse.Event{
-					Type: "service_failed",
-					Data: map[string]interface{}{
-						"service_name": item.ServiceName,
-						"fail_count":   item.FailCount,
-						"message":      "Service has failed multiple times, manual intervention required",
-						"timestamp":    time.Now(),
-					},
+				log.Error("service_failed", map[string]interface{}{
+					"serviceName": item.ServiceName,
+					"failCount":   item.FailCount,
+					"message":     "Exceeded max restart attempts",
 				})
 				watchlistMgr.Update(ctx, item.ServiceName, false)
 				continue
 			}
 
-			log.Printf("Watcher: service %s is %s, attempting restart...", item.ServiceName, item.Service.State)
-
-			broadcaster.Broadcast(sse.Event{
-				Type: "service_restarting",
-				Data: map[string]interface{}{
-					"service_name": item.ServiceName,
-					"timestamp":    time.Now(),
-				},
+			log.Info("restart_attempt", map[string]interface{}{
+				"serviceName": item.ServiceName,
+				"state":       item.Service.State,
 			})
 
 			if err := svcMgr.Start(ctx, item.ServiceName); err != nil {
-				item.FailCount++
-				log.Printf("Watcher: failed to restart %s: %v", item.ServiceName, err)
-
-				broadcaster.Broadcast(sse.Event{
-					Type: "service_restart_failed",
-					Data: map[string]interface{}{
-						"service_name": item.ServiceName,
-						"fail_count":   item.FailCount,
-						"message":      "Service failed to restart",
-						"timestamp":    time.Now(),
-					},
+				log.Error("restart_failed", map[string]interface{}{
+					"serviceName": item.ServiceName,
+					"error":       err.Error(),
+					"failCount":   item.FailCount + 1,
 				})
 			} else {
-				log.Printf("Watcher: successfully restarted %s", item.ServiceName)
 				watchlistMgr.IncrementRestartCount(ctx, item.ServiceName)
-
-				broadcaster.Broadcast(sse.Event{
-					Type: "service_restart_success",
-					Data: map[string]interface{}{
-						"service_name":  item.ServiceName,
-						"restart_count": item.RestartCount,
-						"timestamp":     time.Now(),
-					},
+				log.Info("restart_success", map[string]interface{}{
+					"serviceName":  item.ServiceName,
+					"restartCount": item.RestartCount + 1,
 				})
 			}
 		}
 	}
+}
+
+func checkHostResources(log *logger.Logger) {
+	mem, _ := mem.VirtualMemory()
+	cpuPercents, _ := cpu.Percent(time.Second, false)
+	log.Info("host_resources", map[string]interface{}{
+		"cpuPercent":  cpuPercents[0],
+		"totalMB":     mem.Total / 1024 / 1024,
+		"usedMB":      mem.Used / 1024 / 1024,
+		"usedPercent": mem.UsedPercent,
+	})
 }

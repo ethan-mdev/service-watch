@@ -51,6 +51,7 @@ func (w *winSvc) List(ctx context.Context) ([]core.Service, error) {
 			Name:        name,
 			DisplayName: config.DisplayName,
 			State:       stateToString(status.State),
+			StartType:   startTypeToString(config.StartType),
 		})
 	}
 

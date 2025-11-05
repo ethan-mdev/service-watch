@@ -1,20 +1,14 @@
 package sse
 
 import (
-	"encoding/json"
-	"fmt"
 	"sync"
-)
 
-// Represents an SSE event.
-type Event struct {
-	Type string      `json:"type"`
-	Data interface{} `json:"data"`
-}
+	"github.com/ethan-mdev/service-watch/internal/core"
+)
 
 // Represents an SSE client.
 type Client struct {
-	Channel chan Event
+	Channel chan core.Event
 }
 
 // Manages SSE clients and broadcasts events to them.
@@ -48,7 +42,7 @@ func (b *Broadcaster) UnregisterClient(client *Client) {
 }
 
 // Broadcasts an event to all registered clients.
-func (b *Broadcaster) Broadcast(event Event) {
+func (b *Broadcaster) Broadcast(event core.Event) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
@@ -58,10 +52,4 @@ func (b *Broadcaster) Broadcast(event Event) {
 		default:
 		}
 	}
-}
-
-// Formats an event as an SSE string.
-func FormatEvent(event Event) string {
-	data, _ := json.Marshal(event.Data)
-	return fmt.Sprintf("event: %s\ndata: %s\n\n", event.Type, data)
 }

@@ -7,6 +7,8 @@ require (
 	golang.org/x/sys v0.37.0
 )
 
+require gopkg.in/natefinch/lumberjack.v2 v2.2.1
+
 require (
 	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect

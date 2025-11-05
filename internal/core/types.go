@@ -22,3 +22,9 @@ type WatchlistItem struct {
 	LastRestart  string   `json:"lastRestart,omitempty"` // ISO timestamp of last restart
 	Service      *Service `json:"service,omitempty"`     // Current service state when fetched
 }
+
+// Represents an SSE event.
+type Event struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
+}
