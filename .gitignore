@@ -11,3 +11,6 @@
 # ---- Dependency tools ----
 .env
 .env.*
+
+logs/
+watchlist.json

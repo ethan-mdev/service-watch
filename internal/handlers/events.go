@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/ethan-mdev/service-watch/internal/core"
 	"github.com/ethan-mdev/service-watch/internal/sse"
 )
 
@@ -26,7 +28,7 @@ func (h *EventsHTTP) Stream(w http.ResponseWriter, r *http.Request) {
 
 	// Create client
 	client := &sse.Client{
-		Channel: make(chan sse.Event, 10),
+		Channel: make(chan core.Event, 10),
 	}
 
 	// Register client
@@ -35,23 +37,20 @@ func (h *EventsHTTP) Stream(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("SSE: Client connected: %v", r.RemoteAddr)
 
-	// Send initial connection event
-	fmt.Fprint(w, sse.FormatEvent(sse.Event{
-		Type: "connected",
-		Data: map[string]interface{}{
-			"message": "Connected to service-watch events",
-		},
-	}))
-	w.(http.Flusher).Flush()
-
 	// Stream events
 	for {
 		select {
 		case <-r.Context().Done():
+			log.Printf("SSE: Client disconnected: %v", r.RemoteAddr)
 			return
 		case event := <-client.Channel:
-			fmt.Fprint(w, sse.FormatEvent(event))
+			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, toJSON(event.Data))
 			w.(http.Flusher).Flush()
 		}
 	}
+}
+
+func toJSON(data interface{}) string {
+	b, _ := json.Marshal(data)
+	return string(b)
 }
