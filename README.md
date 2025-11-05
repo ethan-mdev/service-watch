@@ -78,9 +78,9 @@ Full API documentation is available at `http://localhost:8080/docs` when running
 ### Services
 - `GET /v1/services` - List all services
 - `GET /v1/services/{name}` - Get service details with metrics
-- `PUT /v1/services/{name}/start` - Start a service
-- `PUT /v1/services/{name}/stop` - Stop a service
-- `PUT /v1/services/{name}/restart` - Restart a service
+- `POST /v1/services/{name}/start` - Start a service
+- `POST /v1/services/{name}/stop` - Stop a service
+- `POST /v1/services/{name}/restart` - Restart a service
 
 ### Watchlist
 - `GET /v1/watchlist` - List monitored services
