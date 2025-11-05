@@ -44,6 +44,7 @@ func main() {
 	svcHTTP := handlers.NewServiceHTTP(svcMgr)
 	watchlistHTTP := handlers.NewWatchlistHTTP(watchlistMgr)
 	eventsHTTP := handlers.NewEventsHTTP(broadcaster)
+	metricsHTTP := handlers.NewMetricsHTTP("logs/events.jsonl")
 
 	// Setup router
 	r := chi.NewRouter()
@@ -53,6 +54,7 @@ func main() {
 	// Mount routes
 	r.Mount("/v1/services", svcHTTP.Routes())
 	r.Mount("/v1/watchlist", watchlistHTTP.Routes())
+	r.Mount("/v1/metrics", metricsHTTP.Routes())
 	r.Get("/v1/events", eventsHTTP.Stream)
 
 	// Start server

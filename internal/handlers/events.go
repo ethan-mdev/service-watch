@@ -44,13 +44,10 @@ func (h *EventsHTTP) Stream(w http.ResponseWriter, r *http.Request) {
 			log.Printf("SSE: Client disconnected: %v", r.RemoteAddr)
 			return
 		case event := <-client.Channel:
-			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, toJSON(event.Data))
+			// Format as SSE: event: type\ndata: json\n\n
+			data, _ := json.Marshal(event.Data)
+			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, data)
 			w.(http.Flusher).Flush()
 		}
 	}
-}
-
-func toJSON(data interface{}) string {
-	b, _ := json.Marshal(data)
-	return string(b)
 }
