@@ -6,6 +6,8 @@ import (
 
 	"github.com/ethan-mdev/service-watch/internal/core"
 	"github.com/ethan-mdev/service-watch/internal/logger"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 // Start begins monitoring watchlist items and auto-restarting services.
@@ -40,7 +42,21 @@ func checkServices(ctx context.Context, watchlistMgr core.WatchlistManager, svcM
 		return
 	}
 
+	checkHostResources(log)
+
 	for _, item := range items {
+
+		if item.Service != nil {
+			log.Info("service_status", map[string]interface{}{
+				"serviceName": item.ServiceName,
+				"state":       item.Service.State,
+				"cpuPercent":  item.Service.CPUPercent,
+				"memoryMB":    item.Service.MemoryMB,
+				"uptimeSec":   item.Service.UptimeSeconds,
+				"pid":         item.Service.PID,
+			})
+		}
+
 		if !item.AutoRestart || item.Service == nil {
 			continue
 		}
@@ -76,4 +92,15 @@ func checkServices(ctx context.Context, watchlistMgr core.WatchlistManager, svcM
 			}
 		}
 	}
+}
+
+func checkHostResources(log *logger.Logger) {
+	mem, _ := mem.VirtualMemory()
+	cpuPercents, _ := cpu.Percent(time.Second, false)
+	log.Info("host_resources", map[string]interface{}{
+		"cpuPercent":  cpuPercents[0],
+		"totalMB":     mem.Total / 1024 / 1024,
+		"usedMB":      mem.Used / 1024 / 1024,
+		"usedPercent": mem.UsedPercent,
+	})
 }

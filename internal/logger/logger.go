@@ -3,31 +3,30 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io"
 	"sync"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/ethan-mdev/service-watch/internal/core"
 	"github.com/ethan-mdev/service-watch/internal/sse"
 )
 
 type Logger struct {
-	eventFile   *os.File
+	eventFile   io.WriteCloser
 	broadcaster *sse.Broadcaster
 	mutex       sync.Mutex
 }
 
 func Start(logPath string, broadcaster *sse.Broadcaster) (*Logger, error) {
-	// Create directory if it doesn't exist
-	dir := filepath.Dir(logPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %w", err)
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+	// Lumberjack handles rotation automatically
+	logFile := &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    10,   // MB - rotate after 10MB
+		MaxBackups: 5,    // Keep 5 old files
+		MaxAge:     7,    // Days - delete files older than 7 days
+		Compress:   true, // Compress old files with gzip
 	}
 
 	return &Logger{
@@ -55,7 +54,7 @@ func (l *Logger) log(level, eventType string, data map[string]interface{}) {
 		"data":  data,
 	}
 
-	// Write to JSONL file
+	// Write to JSONL file (lumberjack handles rotation)
 	json.NewEncoder(l.eventFile).Encode(event)
 
 	// Print to console for development visibility
