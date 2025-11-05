@@ -57,6 +57,11 @@ func main() {
 	r.Mount("/v1/metrics", metricsHTTP.Routes())
 	r.Get("/v1/events", eventsHTTP.Stream)
 
+	// Serve API docs at /docs
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/index.html")
+	})
+
 	// Start server
 	addr := "127.0.0.1:8080"
 	log.Printf("service-watch listening on %s", addr)
