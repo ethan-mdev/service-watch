@@ -55,20 +55,20 @@ curl -N http://localhost:8080/v1/events
 
 ```bash
 # Last hour of metrics for a service
-curl "http://localhost:8080/v1/metrics?event=metric_sample&service=Spooler&since=1h"
+curl "http://localhost:8080/v1/metrics?event=service_status&service=Spooler&since=1h"
 ```
 
 ### Control Services
 
 ```bash
 # Start service
-curl http://localhost:8080/v1/services/Spooler/start
+curl -X POST http://localhost:8080/v1/services/Spooler/start
 
 # Stop service
-curl http://localhost:8080/v1/services/Spooler/stop
+curl -X POST http://localhost:8080/v1/services/Spooler/stop
 
 # Restart service
-curl http://localhost:8080/v1/services/Spooler/restart
+curl -X POST http://localhost:8080/v1/services/Spooler/restart
 ```
 
 ## API Endpoints
@@ -78,9 +78,9 @@ Full API documentation is available at `http://localhost:8080/docs` when running
 ### Services
 - `GET /v1/services` - List all services
 - `GET /v1/services/{name}` - Get service details with metrics
-- `GET /v1/services/{name}/start` - Start a service
-- `GET /v1/services/{name}/stop` - Stop a service
-- `GET /v1/services/{name}/restart` - Restart a service
+- `PUT /v1/services/{name}/start` - Start a service
+- `PUT /v1/services/{name}/stop` - Stop a service
+- `PUT /v1/services/{name}/restart` - Restart a service
 
 ### Watchlist
 - `GET /v1/watchlist` - List monitored services
@@ -136,7 +136,7 @@ The following events are broadcasted via SSE and logged to `logs/events.jsonl`:
 
 - `app_started` - Application initialization
 - `watcher_started` - Service monitor started
-- `metric_sample` - Service metrics (CPU, memory, state)
+- `host_resources` - Host metrics (CPU, memory)
 - `restart_attempt` - Service restart initiated
 - `restart_success` - Service restarted successfully
 - `restart_failed` - Service restart failed
@@ -145,26 +145,14 @@ The following events are broadcasted via SSE and logged to `logs/events.jsonl`:
 ## Platform Support
 
 - ✅ **Windows** - Fully supported
-- 🚧 **Linux** - Planned (systemd support)
+- 🚧 **Linux** - Planned
 
 ## Development
-
-### Build
-
-```bash
-go build -o service-watch.exe ./cmd/agent
-```
-
-### Run Tests
-
-```bash
-go test ./...
-```
 
 ### Dependencies
 
 - [chi](https://github.com/go-chi/chi) - HTTP router
-- [gopsutil](https://github.com/shirou/gopsutil) - Process metrics
+- [gopsutil](https://github.com/shirou/gopsutil) - Process metrics & host resource information
 - [lumberjack](https://github.com/natefinch/lumberjack) - Log rotation
 - [golang.org/x/sys](https://golang.org/x/sys) - Windows service control
 

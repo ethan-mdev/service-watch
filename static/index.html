@@ -146,21 +146,21 @@
     </div>
 
     <div class="endpoint">
-        <h3><span class="method get">GET</span> /v1/services/{name}/start</h3>
+        <h3><span class="method post">POST</span> /v1/services/{name}/start</h3>
         <p>Start a stopped service.</p>
-        <p><strong>Example:</strong> <code>GET /v1/services/Spooler/start</code></p>
+        <p><strong>Example:</strong> <code>POST /v1/services/Spooler/start</code></p>
     </div>
 
     <div class="endpoint">
-        <h3><span class="method get">GET</span> /v1/services/{name}/stop</h3>
+        <h3><span class="method post">POST</span> /v1/services/{name}/stop</h3>
         <p>Stop a running service.</p>
-        <p><strong>Example:</strong> <code>GET /v1/services/Spooler/stop</code></p>
+        <p><strong>Example:</strong> <code>POST /v1/services/Spooler/stop</code></p>
     </div>
 
     <div class="endpoint">
-        <h3><span class="method get">GET</span> /v1/services/{name}/restart</h3>
+        <h3><span class="method post">POST</span> /v1/services/{name}/restart</h3>
         <p>Restart a service (stop then start).</p>
-        <p><strong>Example:</strong> <code>GET /v1/services/Spooler/restart</code></p>
+        <p><strong>Example:</strong> <code>POST /v1/services/Spooler/restart</code></p>
     </div>
 
     <h2>Watchlist</h2>
@@ -301,7 +301,7 @@ GET /v1/metrics?level=ERROR&limit=50</code></pre>
         
         <p><strong>Event Types:</strong></p>
         <ul>
-            <li><span>metric_sample</span> - Service metrics (CPU, memory)</li>
+            <li><span>host_resources</span> - Host metrics (CPU, memory)</li>
             <li><span>restart_attempt</span> - Service restart initiated</li>
             <li><span>restart_success</span> - Service restarted successfully</li>
             <li><span>restart_failed</span> - Service restart failed</li>
@@ -309,22 +309,6 @@ GET /v1/metrics?level=ERROR&limit=50</code></pre>
             <li><span>app_started</span> - Application started</li>
             <li><span>watcher_started</span> - Service monitor started</li>
         </ul>
-
-        <p><strong>JavaScript Example:</strong></p>
-        <pre><code>const eventSource = new EventSource('/v1/events');
-
-eventSource.addEventListener('metric_sample', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`${data.serviceName}: CPU ${data.cpuPercent}%`);
-});
-
-eventSource.addEventListener('restart_success', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`${data.serviceName} restarted (count: ${data.restartCount})`);
-});</code></pre>
-
-        <p><strong>cURL Example:</strong></p>
-        <pre><code>curl -N http://localhost:8080/v1/events</code></pre>
     </div>
 
     <h2>Common Use Cases</h2>
@@ -340,17 +324,17 @@ curl -N http://localhost:8080/v1/events</code></pre>
 
     <h3>View Historical Metrics</h3>
     <pre><code># Get last hour of CPU/memory data for a service
-curl "http://localhost:8080/v1/metrics?event=metric_sample&service=Spooler&since=1h"</code></pre>
+curl "http://localhost:8080/v1/metrics?event=service_status&service=Spooler&since=1h"</code></pre>
 
     <h3>Manual Service Control</h3>
     <pre><code># Stop service
-curl http://localhost:8080/v1/services/Spooler/stop
+curl -X POST http://localhost:8080/v1/services/Spooler/stop
 
 # Check status
 curl http://localhost:8080/v1/services/Spooler
 
 # Start service
-curl http://localhost:8080/v1/services/Spooler/start</code></pre>
+curl -X POST http://localhost:8080/v1/services/Spooler/start</code></pre>
 
     <footer style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb; color: #6b7280;">
         <p>Service Watch - Windows Service Monitoring API</p>

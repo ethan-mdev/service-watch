@@ -29,7 +29,7 @@ func (h *MetricsHTTP) Routes() chi.Router {
 // query handles filtering and returning log entries
 func (h *MetricsHTTP) query(w http.ResponseWriter, r *http.Request) {
 	// Parse query params
-	eventType := r.URL.Query().Get("event")     // e.g., "metric_sample"
+	eventType := r.URL.Query().Get("event")     // e.g., "watcher_started, host_resources, service_status"
 	serviceName := r.URL.Query().Get("service") // e.g., "Steam Client Service"
 	limitStr := r.URL.Query().Get("limit")      // e.g., "100"
 	sinceStr := r.URL.Query().Get("since")      // e.g., "1h" or RFC3339 timestamp
