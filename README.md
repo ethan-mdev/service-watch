@@ -155,12 +155,6 @@ The following events are broadcasted via SSE and logged to `logs/events.jsonl`:
 go build -o service-watch.exe ./cmd/agent
 ```
 
-### Run Tests
-
-```bash
-go test ./...
-```
-
 ### Dependencies
 
 - [chi](https://github.com/go-chi/chi) - HTTP router
