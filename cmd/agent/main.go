@@ -59,7 +59,7 @@ func main() {
 
 	// Serve API docs at /docs
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/index.html")
+		http.ServeFile(w, r, "static/docs.html")
 	})
 
 	// Start server
