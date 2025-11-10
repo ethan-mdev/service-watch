@@ -4,16 +4,24 @@
   import { chartsState } from "../stores/charts.svelte.js";
   import { sseState } from "../stores/sse.svelte.js";
   import { metricsAPI } from "../stores/metrics.svelte.js";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
 
   let openMenus = $state({});
   let logs = $state([]);
   let logService = $state("");
   let logLevel = $state("");
   let logSince = $state("15");
+  let isLiveTailing = $state(false);
+  let liveEventSource = null;
 
   onMount(() => {
     watchlistAPI.fetch();
+  });
+
+  onDestroy(() => {
+    if (liveEventSource) {
+      liveEventSource.close();
+    }
   });
 
   function toggleMenu(serviceName) {
@@ -94,6 +102,66 @@
     console.log('Query result:', data, 'Array?', Array.isArray(data));
     logs = data;
     console.log('Logs state set to:', logs);
+  }
+
+  function toggleLiveTail() {
+    if (isLiveTailing) {
+      // Stop live tailing
+      if (liveEventSource) {
+        liveEventSource.close();
+        liveEventSource = null;
+      }
+      isLiveTailing = false;
+    } else {
+      // Start live tailing
+      logs = []; // Clear existing logs
+      isLiveTailing = true;
+      
+      liveEventSource = new EventSource('/v1/events');
+      
+      // Listen for all event types
+      liveEventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          addLiveEvent(data, event.type || 'message');
+        } catch (err) {
+          console.error('Error parsing live event:', err);
+        }
+      };
+
+      // Listen for specific event types
+      ['host_resources', 'service_status'].forEach(eventType => {
+        liveEventSource.addEventListener(eventType, (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            addLiveEvent(data, eventType);
+          } catch (err) {
+            console.error('Error parsing live event:', err);
+          }
+        });
+      });
+
+      liveEventSource.onerror = (error) => {
+        console.error('Live tail SSE error:', error);
+        isLiveTailing = false;
+      };
+    }
+  }
+
+  function addLiveEvent(data, eventType) {
+    const logEntry = {
+      time: new Date().toISOString(),
+      event: eventType,
+      level: 'INFO',
+      data: data
+    };
+
+    // Apply filters if set
+    if (logLevel && logEntry.level !== logLevel) return;
+    if (logService && (!data.serviceName || data.serviceName !== logService)) return;
+
+    // Add to beginning of logs array (newest first)
+    logs = [logEntry, ...logs.slice(0, 99)]; // Keep only last 100 entries
   }
 </script>
 
@@ -227,8 +295,15 @@
           id="runQuery"
           onclick={runLogQuery}
           class="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/10 text-sm shrink-0 ml-2"
+          disabled={isLiveTailing}
         >
           Run
+        </button>
+        <button
+          onclick={toggleLiveTail}
+          class="px-3 py-1.5 rounded-md {isLiveTailing ? 'bg-red-900/50 hover:bg-red-900/70 border-red-700' : 'bg-green-900/50 hover:bg-green-900/70 border-green-700'} text-sm shrink-0"
+        >
+          {isLiveTailing ? 'Stop Tail' : 'Live Tail'}
         </button>
       </div>
     </div>
@@ -238,7 +313,11 @@
     >
       {#if logs.length === 0}
         <div class="text-neutral-500 text-center py-8">
-          Click "Run" to fetch logs with the selected filters
+          {#if isLiveTailing}
+            Waiting for live events...
+          {:else}
+            Click "Run" to fetch historical logs or "Live Tail" for real-time events
+          {/if}
         </div>
       {:else}
         {#each logs as log}
