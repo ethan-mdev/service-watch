@@ -1,8 +1,11 @@
 import { watchlistState, watchlistAPI } from './watchlist.svelte.js';
+import { chartsState } from './charts.svelte.js';
 
 export const sseState = $state({
   hostResources: {
     cpuPercent: 0,
+    memoryMB: 0,
+    totalMB: 0,
     usedPercent: 0
   }
 });
@@ -40,10 +43,23 @@ export const sseManager = {
           item.service.state = data.state;
           item.service.cpuPercent = data.cpuPercent;
           item.service.memoryMB = data.memoryMB;
-          item.service.uptimeSeconds = data.uptimeSeconds;
+          item.service.uptimeSeconds = data.uptimeSec; // Note: backend sends uptimeSec
           item.service.pid = data.pid;
           
           console.log(`Updated ${data.serviceName} status to ${data.state}`);
+          
+          // Push data to charts if the service is pinned
+          if (chartsState.isPinned(data.serviceName)) {
+            const timestamp = Date.now();
+            chartsState.pushData(
+              data.serviceName,
+              timestamp,
+              data.cpuPercent || 0,
+              data.memoryMB || 0,
+              sseState.hostResources.totalMB || 16384 // Use total system memory
+            );
+            console.log(`Pushed chart data for ${data.serviceName}: CPU=${data.cpuPercent}%, MEM=${data.memoryMB}MB`);
+          }
         }
       } catch (err) {
         console.error('Error parsing service_status:', err);

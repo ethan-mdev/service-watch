@@ -5,16 +5,25 @@
   import { onMount, onDestroy } from 'svelte';
 
   let metricsInterval;
+  let serviceFailed24h = $state(0);
 
   onMount(async () => {
     await watchlistAPI.fetch();
     sseManager.connect();
     
-    // Fetch metrics on mount
-    await metricsAPI.fetchServiceFailed();
+    // Fetch failed services count on mount
+    serviceFailed24h = await metricsAPI.getServiceFailed('24h');
     
-    // Set up periodic refresh (every 5 minutes)
-    metricsInterval = metricsAPI.startPeriodicRefresh();
+    // Set up periodic refresh (every 5 minutes) for failed services
+    metricsInterval = metricsAPI.startPeriodicRefresh(
+      { event: 'service_failed', since: '24h' },
+      5 * 60 * 1000
+    );
+    
+    // Update local state when new data comes in
+    setInterval(async () => {
+      serviceFailed24h = await metricsAPI.getServiceFailed('24h');
+    }, 5 * 60 * 1000);
   });
 
   onDestroy(() => {
@@ -65,19 +74,19 @@
     </div>
     <div class="mt-4 grid grid-cols-2 gap-3">
       <div class="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-        <div class="text-xs subtle">Watched</div>
+        <div class="text-xs">Watched</div>
         <div class="text-2xl font-semibold mt-1">{watchlistState.numItems}</div>
       </div>
       <div class="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-        <div class="text-xs subtle">Failed (24h) {metricsState.loading ? '-' : ''}</div>
-        <div class="text-2xl font-semibold mt-1">{metricsState.serviceFailed24h}</div>
+        <div class="text-xs">Failed (24h) {metricsState.loading ? '-' : ''}</div>
+        <div class="text-2xl font-semibold mt-1">{serviceFailed24h}</div>
       </div>
       <div class="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-        <div class="text-xs subtle">Running</div>
+        <div class="text-xs">Running</div>
         <div class="text-2xl font-semibold mt-1">{watchlistState.numRunning}</div>
       </div>
       <div class="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-        <div class="text-xs subtle">Stopped</div>
+        <div class="text-xs">Stopped</div>
         <div class="text-2xl font-semibold mt-1">{watchlistState.numStopped}</div>
       </div>
     </div>

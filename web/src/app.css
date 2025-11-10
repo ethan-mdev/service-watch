@@ -34,10 +34,6 @@
   border-radius: .5rem; 
 }
 
-.subtle { 
-  color: #a3a3a3; 
-}
-
 /* Gauges */
 .gauge { 
   width: 140px; 
