@@ -13,10 +13,10 @@ import (
 // Start begins monitoring watchlist items and auto-restarting services.
 func Start(ctx context.Context, watchlistMgr core.WatchlistManager, svcMgr core.ServiceManager, log *logger.Logger) {
 	log.Info("watcher_started", map[string]interface{}{
-		"interval": "10s",
+		"interval": "2s",
 	})
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	// Check immediately on startup
