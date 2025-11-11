@@ -11,6 +11,7 @@ logs/
 watchlist.json
 
 # Dependencies
+.vite/
 node_modules/
 
 # IDE files
