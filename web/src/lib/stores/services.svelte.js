@@ -64,5 +64,21 @@ export const servicesAPI = {
       console.error("Error restarting service:", err);
       return false;
     }
+  },
+
+  async fetchAvailable() {
+    try {
+      const response = await fetch('/v1/services');
+      if (response.ok) {
+        const data = await response.json();
+        return data.items || [];
+      } else {
+        console.error('Failed to fetch available services:', response.statusText);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error fetching available services:', err);
+      return [];
+    }
   }
 };
