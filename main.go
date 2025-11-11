@@ -19,7 +19,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-//go:embed dist/*
+//go:embed dist
 var webFS embed.FS
 
 //go:embed icon.ico
