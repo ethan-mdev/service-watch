@@ -116,9 +116,6 @@ service-watch/
 ├── main.go              # Application entry point
 ├── internal/            # Go backend modules
 ├── web/                 # Svelte web dashboard source
-├── dist/                # Built web assets (embedded)
-├── logs/                # Event logs (created at runtime)
-├── watchlist.json       # Watchlist configuration (created at runtime)
 └── icon.ico            # System tray icon
 ```
 
