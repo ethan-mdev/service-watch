@@ -1,9 +1,22 @@
-# ---- Go build ----
-*.exe
-*.out
+# Windows resource files (generated)
+*.syso
+*.rc
 
-.vscode/
-node_modules/
+# Build artifacts
+*.exe
+dist/
+
+# Logs and runtime data
 logs/
 watchlist.json
-dist/
+
+# Dependencies
+node_modules/
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+
+# Go build cache
+go.sum
